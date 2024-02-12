@@ -128,24 +128,20 @@ void directMethod(int stoich_matrix[MAX_REACTIONS][MAX_SPECIES], PropensityFunc 
             }
         }
 
+
         if (T + tau > outputtime) {
-            rxn_count++;
+//          printf("output: %f %f\n", *t_out, *x_out);
             (t_out)[rxn_count] = outputtime;
             memcpy(x_out + rxn_count * MAX_SPECIES, X, MAX_SPECIES * sizeof(double));
+            rxn_count++;
             outputtime += outputsize;
         }
+
 
         T += tau;
         for (int i = 0; i < MAX_SPECIES; i++) {
             X[i] += stoich_matrix[mu][i];
         }
     }
-
-    if (T >= tspan[1]) {
-        rxn_count++;
-        (t_out)[rxn_count] = T;
-        memcpy(x_out + rxn_count * MAX_SPECIES, X, MAX_SPECIES * sizeof(double));
-    }
-   
-
+    
 }
