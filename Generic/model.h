@@ -16,10 +16,14 @@ extern double rateConstants[M];
 
 #define DIFFUSION_RATE {5e-4,(5e-4 * 10000)}
 #define REACTION_TYPE {1, 2, 1, 3}
+#define specesTot {0}
 #define RATE_CONSTANTS {1, 2, 3, 1.0/W*W}
 
 void initial(long ***species_population);
-double prop3(int numBins, long  **species_population);
+double prop3(double *a, long **species_population);
+void stateChangeMinus(int i, int j, long **species_population) ;
+void stateChangeAdd(int i, int j, long **species_population);
+
 //extern PropensityFunc propensityFuncs[M];
 
 #endif
