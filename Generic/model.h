@@ -20,9 +20,8 @@ extern double rateConstants[M];
 #define RATE_CONSTANTS {1, 2, 3, 1.0/W*W}
 
 void initial(long ***species_population);
-double prop3(double *a, long **species_population);
-void stateChangeMinus(int i, int j, long **species_population) ;
-void stateChangeAdd(int i, int j, long **species_population);
+void prop3(double **a,long **species_population,int rulenum);
+void stateChange(int i,int j, long **species_population,long *tot);
 
 //extern PropensityFunc propensityFuncs[M];
 

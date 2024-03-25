@@ -3,6 +3,7 @@ model.c file provied by user
 */
 #include "model.h" 
 #include <stdlib.h>
+#include <stdio.h>
 
 
 void initial(long ***species_population) {
@@ -12,27 +13,59 @@ void initial(long ***species_population) {
     }
 }
 
-double prop3(double *a, long **species_population) { 
-    *a = 0; 
+void prop3(double **a,long **species_population,int rulenum) {  
     for (int i = 0; i < W; i++) {
-        long x = species_population[0][W - 1]; 
-        long y = species_population[1][W - 1];
-        long temp = x * (x - 1) * y;
-        *a += temp;
+        long x = species_population[0][i]; 
+        long y = species_population[1][i];
+        a[rulenum][i] = x * (x - 1) * y; 
+       } 
+}
+
+//reaction i will hapen in j bin
+void stateChange(int i,int j, long **species_population,long *tot) {
+   switch(i) {
+    case 1:
+        species_population[0][j]++;
+        tot[0]++; 
+        break;
+    case 2:
+        species_population[0][j]--;
+        tot[0]--; 
+        break;
+    case 3:
+        species_population[1][j]++;
+        tot[1]++; 
+        break;
+    case 4:
+        species_population[0][j]++;
+        species_population[1][j]--;
+        tot[0]++; 
+        tot[1]--; 
+        break;
+    default:
+        exit(1);
+        break;
     }
-    double rateConstant = 1 / (W * W);
-    *a *= rateConstant * W * W;
-    return *a;
 }
 
-void stateChangeMinus(int i, int j, long **species_population) {
-    species_population[i][j] --;
-}
 
-void stateChangeAdd(int i, int j, long **species_population) {
-    species_population[i][j] ++;
-}
+//PropensityFunc propensityFuncs[M] = {NULL, NULL, NULL, ,
 
-//PropensityFunc propensityFuncs[M] = {NULL, NULL, NULL, prop3};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

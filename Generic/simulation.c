@@ -55,10 +55,10 @@ int main(int argc, char *argv[])
    
     
     const int RULENUM = N + M;
-    double a[W][RULENUM], a0[W];
-    double r1, r2[W], tau;
-    int ita[W];
-    double sum[W], sum_a[W], sum_x[W];
+    double a0,total_a[RULENUM];
+    double r1, r2, tau;
+    int ita;
+    double sum, sum_a, sum_x;
 
 
     long firings[RULENUM], location[W];
@@ -99,8 +99,15 @@ int main(int argc, char *argv[])
         for (int m = 0; m < W; m++) {
             fscanf(inputfile, "%ld", &species_population[n][m]);
             tot[n] += species_population[n][m]; 
-        } 
-    } 
+        }}
+
+        double **a; 
+        a = (double **)malloc(RULENUM * sizeof(double *));
+        for (int n = 0; n < RULENUM; n++)
+        {    
+            a[n] = (double *)malloc(W * sizeof(double));
+        }
+
         /*
         for writing output
         */
@@ -110,183 +117,166 @@ int main(int argc, char *argv[])
             location[i] = 0;
 
         double timeTracker = 0.0; 
+
         while (timeTracker < SimulationTime)
         {
             /*
             calculate propensity for diffusion for each species
-            */
-              for (int j = 0; j < W; j++)
-            {
-                for(int n =0; n<N;n++){
-                   a[j][n] = jumpRate[n] * (tot[n]);  
-                }
+            */ 
+           for(int n =0; n<N;n++){
+          
+                   total_a[n] = jumpRate[n] * (double)(tot[n]);  
+              
             }
             /*
             calculate propneisty for each reaction channel
             */
             int Type2_index = 0;
-            for (int j = 0; j < W; j++)
-            {
-            for (int run = 0; run < M; run++)
+               for (int run = 0; run < M; run++)
             {
                 if (reactionTypes[run] == 1)
                 {
-                    a[j][N+run] = rateConstants[run] * S;
-
+                    total_a[N + run] = rateConstants[run] * S;
+                  
                 }
                 else if (reactionTypes[run] == 2)
                 {
-                    a[j][N+run] = rateConstants[run] * tot[Type2_index];
-                    Type2_index+=1;
+                    total_a[N + run] = rateConstants[run] * tot[Type2_index];
+                    Type2_index+=1; 
                 }
                 else if (reactionTypes[run] == 3)
-                {
-                   a[j][N+run]  = prop3(&a[j][N+run], species_population);
-                   
-                }//printf("a[j][N+run] %d\nis ",a[j][N+run]);
+                {  
+                    total_a[N + run] = 0; 
+                    prop3(a, species_population, N + run);
+                    for(int i=0;i<W;i++){
+                        total_a[N + run]+=a[N+run][i];
+                    } 
+                }    
+                
             }
-            }
+            //  printf("#################################\n");
+            //  printf("a is %f\n",total_a[0]);
+            //  printf("a is %f\n",total_a[1]);
+            //  printf("a is %f\n",total_a[2]);
+            //  printf("a is %f\n",total_a[3]);
+            //  printf("a is %f\n",total_a[4]);
+            //  printf("a is %f\n",total_a[5]);
+            //  printf("#################################\n");
+
             /*
             sum total propensity
             */
-            for(int i =0;i<W;i++){
-                a0[i] = 0;  
+            a0=0;
+            for(int i =0;i<RULENUM;i++){
+                a0 += total_a[i];  
             }
 
-            for(int i =0;i<W;i++){
-            for (int j = 0; j < M-1; j++){ 
-                    a0[i] += a[i][j]; 
-            
-            } 
-           }
-        
-            
-
-            for(int i =0; i<W;i++){
-                do
+            do
             {
                 r1 = (double)rand() / RAND_MAX;
             } while (r1 <= 0 || r1 >= 1);
-                tau = -1.0/a0[i]*log(r1); 
 
-            }
+            tau = -1.0/a0*log(r1);
+           
             timeTracker += tau;
+           
+            r2 = (double)rand() / RAND_MAX;
 
-            for(int i=0;i<W;i++){
-                  r2[i] = (double)rand() / RAND_MAX;
-                  sum[i] = r2[i]*a0[i];
-                  sum_a[i] = r2[i] * a[i][0];
-                  ita[i] = 0;
-                        
-                    while (sum_a[i]< sum[i])
-                    {
-                        ita[i]++;
-                        sum_a[i] +=a[i][ita[i]];
-                    }
-                  sum_a[i] -= a[i][ita[i]];  
-                  firings[ita[i]]++;
-
-                    int q;//index of bin
-            if (ita[i] < N)
-            {    
-                if (ita[i] % 2 == 0) //even number is the species diffuse to left
+            sum = r2 * a0; 
+            sum_a = total_a[0];
+            /*
+            select which reaction will happen
+            */
+            ita = 0;//index of reaction
+            while (sum_a < sum)
+            {
+                ita++;
+                sum_a += total_a[ita];
+            }
+            //sum_a -= total_a[ita];
+            firings[ita]++;
+          
+            int i;//index of bin
+            if (ita < N)
+            {  
+                if (ita % 2 == 0) //even number is the species diffuse to left
                 {
-                    r2[i] = (sum - sum_a) / a[i][ita[i]];
-                    sum[i] = (tot[ita[i] / 2] - species_population[(ita[i] / 2)][0]) * r2[i];
-                    sum_x[i] = species_population[(ita[i] / 2)][1];
-                    q = 1;
+                    r2 = (sum - sum_a) / total_a[ita];
+                    sum = (tot[ita / 2] - species_population[(ita / 2)][0]) * r2;
+                    sum_x = species_population[(ita / 2)][0];
+                    i = 1;
                     while (sum_x < sum)
                     {
-                        q++;
-                        sum_x[i] += species_population[(ita[i] / 2)][q];
+                        i++;
+                        sum_x += species_population[(ita / 2)][i];
                     }
-                    species_population[(ita[i] / 2)][q]--;
-                    species_population[(ita[i] / 2)][q - 1]++;
-                    location[q]++;  
+                    species_population[(ita / 2)][i]--;
+                    species_population[(ita / 2)][i - 1]++;
+                    location[i]++;  
                   
                 }
 
                 else// odd number is species diffuse to right
                 { 
-                    r2[i] = (sum[i] - sum_a[i]) / a[i][ita[i]];
-                    sum[i] = (tot[ita[i] / 2+1] - species_population[(ita[i] / 2+1)][0]) * r2[i];
-                    sum_x[i] = species_population[(ita[i] / 2+1)][1];
-                    q = 1;
-                    while (sum_x[i] < sum[i])
+                    r2 = (sum - sum_a) / total_a[ita];
+                    sum = (tot[ita / 2+1] - species_population[(ita / 2+1)][0]) * r2;
+                    sum_x = species_population[(ita / 2+1)][1];
+                    i = 1;
+                    while (sum_x < sum)
                     {
-                        q++;
-                        sum_x[i] += species_population[(ita[i] / 2+1)][q];
+                        i++;
+                        sum_x += species_population[(ita / 2+1)][i];
                     }
-                    species_population[(ita[i] / 2+1)][q]--;
-                    species_population[(ita[i] / 2+1)][q - 1]++;
-                    location[q]++;
+                    species_population[(ita / 2+1)][i]--;
+                    species_population[(ita / 2+1)][i - 1]++;
+                    location[i]++;
+                    
+                    // i = 0;
+                    // r2 = (sum - sum_a) / total_a[ita];
+                    // sum = (tot[ita / 2+1] - species_population[ita/ 2+1][W - 1]) * r2;
+                    // sum_x = species_population[ita / 2+1][1];
 
-                    q = 0;
-                    r2[i] = (sum[i] - sum_a[i]) / a[i][ita[i]];
-                    sum[i] = (tot[ita[i] / 2+1] - species_population[ita[i] / 2+1][W - 1]) * r2[i];
-                    sum_x[i] = species_population[ita[i] / 2+1][0];
-
-                    while (sum_x[i] < sum[i])
-                    {
-                        q++;
-                        sum_x[i] += species_population[ita[i] / 2+1][q];
-                    }
-                    species_population[ita[i] / 2+1][q]--;
-                    species_population[ita[i] / 2+1][q + 1]++;
-                    location[q]++;
+                    // while (sum_x < sum)
+                    // {
+                    //     i++;
+                    //     sum_x+= species_population[ita / 2+1][i];
+                    // }
+                    // species_population[ita / 2+1][i]--;
+                    // species_population[ita / 2+1][i + 1]++;
+                    // location[i]++;
                 
                 }
             }
             else
             {
-                if (reactionTypes[ita[i] - N] == 1)
-                { 
-                    r2[i] = (sum[i] - sum_a[i]) / a[i][ita[i]];
-                    q = r2[i] * W; 
-                    stateChangeAdd((ita[i] - N) / 2,q,species_population);
-                    tot[(ita[i] - N) / 2]++;
-                    location[q]++;
-                  
-                }
-                if (reactionTypes[ita[i] - N] == 2)
-                { 
-                    r2[i] = (sum[i] - sum_a[i]) / a[i][ita[i]];
-                    sum_x[i] = species_population[(ita[i] - N) / 2][0];
-                    sum[i] = r2[i] * tot[(ita[i] - N) / 2];
-                    q = 0;
-                    while (sum_x[i] < sum[i])
-                    {
-                        q++;
-                        sum_x[i] += species_population[(ita[i] -  N) / 2][q];
+                if (reactionTypes[ita - N] == 1) {
+                    r2 = (sum - sum_a)/total_a[ita];
+                    i = floor(r2 * W / a0); 
+                    location[i]++;
+                } else if (reactionTypes[ita - N] == 2) {
+                    r2 = (sum - sum_a)/total_a[ita];
+                    i = 0;
+                    sum_x = species_population[(ita - N) / 2][0];
+                    sum = (r2 - (sum_a - total_a[ita])) / total_a[ita] * tot[(ita - N) / 2];
+                    while (sum_x < sum && i < W - 1) {
+                        i++;
+                        sum_x += species_population[(ita - N) / 2][i];
                     }
-
-                    stateChangeMinus((ita[i] - N) / 2,q,species_population);
-                    tot[(ita[i] -N) / 2]--;
-                    location[q]++;
-                   
-                }
-                if (reactionTypes[ita[i] - N] == 3)
-                {
-                    sum[i] = (sum[i] - sum_a[i]) / (rateConstants[ita[i] -  N] * W * W);
-                    sum_x[i] = species_population[(ita[i] - N) / 2 - 1][0] * (species_population[(ita[i] - N) / 2 - 1][0] - 1) * species_population[(ita[i] - N) / 2][0];
-                    q = 0;
-                    while (sum_x < sum)
-                    {
-                        q++;
-                        sum_x[i] += species_population[(ita[i] -  N) / 2 - 1][q] * (species_population[(ita[i] - N) / 2 - 1][q] - 1) * species_population[(ita[i] - N) / 2][q];
+                    location[i]++;
+                } else if (reactionTypes[ita - N] == 3) {
+                    i = 0;
+                    sum_x = species_population[(ita - N) / 2 - 1][0] * (species_population[(ita - N) / 2 - 1][0] - 1) * species_population[(ita - N) / 2][0];
+                    sum = (r2 - (sum_a - total_a[ita])) / total_a[ita] * rateConstants[ita - N] * W * W;
+                    while (sum_x < sum && i < W - 1) {
+                        i++;
+                        sum_x += species_population[(ita - N) / 2 - 1][i] * (species_population[(ita - N) / 2 - 1][i] - 1) * species_population[(ita - N) / 2][i];
                     }
-                    stateChangeAdd((ita[i] - N) / 2 -1,q,species_population);
-                    tot[(ita[i] - N) / 2 - 1]++;
-                    stateChangeMinus((ita[i] - N) / 2,q,species_population);
-                    tot[(ita[i] - N) / 2]--;
-                    location[q]++;
-                  
+                    location[i]++;
                 }
+                //apply state change
+                stateChange(ita, i, species_population, tot);
+                
             }
-
-                  
-            }
-
         }
 
         for (int i = 0; i < N; i++)
@@ -322,6 +312,10 @@ int main(int argc, char *argv[])
         free(species_population[n]); 
     }
     free(species_population); 
+    for (int n = 0; n < RULENUM; n++) {
+        free(a[n]); 
+    }
+    free(a); 
     fclose(inputfile);
     }
 
