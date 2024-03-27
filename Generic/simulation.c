@@ -38,11 +38,9 @@ int main(int argc, char *argv[])
     /*
     calculate h
     */
-    double h[N];
-    for (int i = 0; i < N; i++)
-    {
-        h[i] = L / W;
-    }
+
+    int h = L / W;
+   
  
     /*
     calculate jump rate
@@ -50,7 +48,7 @@ int main(int argc, char *argv[])
     double jumpRate[N];
     for (int i = 0; i < N; i++)
     {
-        jumpRate[i] = diffusionRates[i] / (h[i] * h[i]);
+        jumpRate[i] = diffusionRates[i] / (h * h);
     }
    
     
@@ -88,12 +86,12 @@ int main(int argc, char *argv[])
         FILE *inputfile;
         inputfile = fopen(inputFilename, "r");
 
-        long **species_population;
-        species_population = (long **)malloc(N * sizeof(long *));
-        for (int n = 0; n < N; n++)
-        {    
-            species_population[n] = (long *)malloc(W * sizeof(long));
-        }
+        long **species_population = init(inputFilename);
+        //species_population = (long **)malloc(N * sizeof(long *));
+        // for (int n = 0; n < N; n++)
+        // {    
+        //     species_population[n] = (long *)malloc(W * sizeof(long));
+        // }
         
         for (int n = 0; n < N; n++) {
         for (int m = 0; m < W; m++) {
@@ -170,7 +168,7 @@ int main(int argc, char *argv[])
             for(int i =0;i<RULENUM;i++){
                 a0 += total_a[i];  
             }
-
+             printf("a0 is %f\n",a0);
             do
             {
                 r1 = (double)rand() / RAND_MAX;
@@ -330,3 +328,29 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+/*
+Initalize population
+*/
+long **init() {
+    long **species_population;
+    species_population = (long **)malloc(N * sizeof(long *));
+    for (int n = 0; n < N; n++) {
+        species_population[n] = (long *)malloc(W * sizeof(long));
+    }
+
+   
+    initial(&species_population);
+
+    // FILE *file = fopen("init_population", "r");
+
+    // for (int i = 0; i < N; i++) {
+    //     for (int j = 0; j < W; j++) {
+    //         fprintf(file, "%ld\t", species_population[i][j]); 
+    //     }
+    //     fprintf(file, "\n"); 
+    // }
+
+    // fclose(file);
+
+    return species_population;
+}
