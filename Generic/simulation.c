@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
     double a0,total_a[RULENUM];
     double r1, r2, tau;
     int ita;
-    double sum, sum_a, sum_x;
+    double r2a0, sum_a, sum_x;
 
 
     long firings[RULENUM], location[w_bin];
@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
                      for(int i=0;i<w_bin;i++){
                        total_a[n_species +run]+=a[run][i];
                      }
-                       //printf("a[run][i] is %f\n",a[5][99]) ;
+                       //printf("a[run][i] is %f\n",a[5][50]) ;
                 }
                  
                 
@@ -124,98 +124,79 @@ int main(int argc, char *argv[])
             } while (r1 <= 0 || r1 >= 1);
 
             tau = -1.0/a0*log(r1);
-           
             timeTracker += tau;  
            
             r2 = (double)rand() / RAND_MAX;
-            sum = r2 * a0; 
+            r2a0 = r2 * a0; 
             sum_a = total_a[0];
             /*
             select which reaction will happen
             */
             ita = 0;//index of reaction
-              while (sum_a < sum)
+              while (sum_a < r2a0)
             {
                 ita++;
                 sum_a += total_a[ita];
             }
-            //sum_a -= total_a[ita];
+            sum_a -= total_a[ita];
             firings[ita]++;
           
-            
             int target;//index of bin
-            if (ita < n_species) 
-            {     
-                int totP = 0; 
-                for (int i = 0; i < w_bin; i++) {
-                    totP += population[ita][i];
-                }
-           
-                target = -1; 
-                double bin_ra0;
-                int bin_sum = 0;
-                if (r2 < 0.5) {// to left
-                    bin_ra0 = r2 * (totP - population[ita][0]);
-                    target = w_bin - 1;
-                    bin_sum = population[ita][target];
-                    while (bin_sum < bin_ra0 && target > 0) {
-                        target--;
-                        bin_sum += population[ita][target];
-                    }
-                     printf("target for left is %d\n",target);
-                } else {
-                    bin_ra0 = r2 * (totP - population[ita][w_bin - 1]);
-                    target = 0;
-                    bin_sum = population[ita][target];
-                    while (bin_sum < bin_ra0 && target < w_bin - 2) {
-                        target++;
-                        bin_sum += population[ita][target];
-                    }
-                    printf("target for right is %d\n",target);
-                }
 
-                if (target != -1 && target > 0 && r2 < 0.5) { 
+            /*
+            ----------------------------------
+                                              |
+                                              |
+                                             \ / r2a0 =90210, ita =2
+                    
+            reaction           |__X__|__Y___|___1__|__2__|__3__|__4__|
+            index              0     1      2      3     4     5     6
+            propensity         0    200   90000   100   200   300   400
+    
+            */
+            if (ita < n_species) 
+            {   
+                int target = floor(((r2a0 - sum_a)/total_a[ita])*w_bin);
+                float direction =(r2a0 -sum_a)/a[ita][target];
+                if(direction>0.5 && direction<1){
                     population[ita][target]--;
                     population[ita][target - 1]++;
-                   
-                } else if (target != -1 && target < w_bin - 1 && r2 >= 0.5) { 
+                }
+                else if(direction<0.5 && direction>0){
                     population[ita][target]--;
                     population[ita][target + 1]++;
-                  
-                } else {
+                }else{
+                    printf("error\n");
                     break;
-                    //printf("Error\n");
                 }
-
             }
             else{ 
                ita = ita -n_species;
-               if (reactions[ita].type == 1) {
-                    r2 = (sum - sum_a)/total_a[ita];
-                    //i = floor(r2 * w_bin / a0); 
+               if (reactions[ita].type == 0) {
+                    int target = floor(((r2a0 - sum_a)/total_a[ita+n_species])*w_bin);
+                    location[target]++;
+                }else if (reactions[ita].type == 1) {
+                    // r2 = (r2a0 - sum_a)/total_a[ita];
+                    // //i = 0;
+                    // sum_x = population[(ita - n_species) / 2][0];
+                    // r2a0 = (r2 - (sum_a - total_a[ita])) / total_a[ita] * tot[(ita - n_species) / 2];
+                    // while (sum_x < r2a0 && target < w_bin - 1) {
+                    //     target++;
+                    //     sum_x += population[(ita - n_species) / 2][target];
+                    // }
                     location[target]++;
                 }else if (reactions[ita].type == 2) {
-                    r2 = (sum - sum_a)/total_a[ita];
                     //i = 0;
-                    sum_x = population[(ita - n_species) / 2][0];
-                    sum = (r2 - (sum_a - total_a[ita])) / total_a[ita] * tot[(ita - n_species) / 2];
-                    while (sum_x < sum && target < w_bin - 1) {
-                        target++;
-                        sum_x += population[(ita - n_species) / 2][target];
-                    }
-                    location[target]++;
-                }else if (reactions[ita].type == 3) {
-                    //i = 0;
-                    sum_x = population[(ita - n_species) / 2 - 1][0] * (population[(ita - n_species) / 2 - 1][0] - 1) * population[(ita - n_species) / 2][0];
-                    sum = (r2 - (sum_a - total_a[ita])) / total_a[ita] * reactions[ita].rateConstant * w_bin * w_bin;
-                    while (sum_x < sum && target < w_bin - 1) {
-                        target++;
-                        sum_x += population[(ita - n_species) / 2 - 1][target] * (population[(ita - n_species) / 2 - 1][target] - 1) * population[(ita - n_species) / 2][target];
-                    }
+                    // sum_x = population[(ita - n_species) / 2 - 1][0] * (population[(ita - n_species) / 2 - 1][0] - 1) * population[(ita - n_species) / 2][0];
+                    // r2a0 = (r2 - (sum_a - total_a[ita])) / total_a[ita] * reactions[ita].rateConstant * w_bin * w_bin;
+                    // while (sum_x < r2a0 && target < w_bin - 1) {
+                    //     target++;
+                    //     sum_x += population[(ita - n_species) / 2 - 1][target] * (population[(ita - n_species) / 2 - 1][target] - 1) * population[(ita - n_species) / 2][target];
+                    // }
                     location[target]++;
                 }
                 //after finding the bin, apply statechange to the reaction base on user provied function
-                stateChange(ita, ita, population, tot);
+                stateChange(ita, target, population, tot);
             }
 
 
