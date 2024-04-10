@@ -26,5 +26,7 @@ struct Reaction{
 struct Species* createSpeciesArray();
 struct Reaction* createReactionArray();
 void prop3(double **a,long **species_population,int rulenum);
-void stateChange(int i,int j, long **species_population,long *tot);
+void ReactionChange(int i,int j, long **species_population,long *tot);
+void DiffusionChange(int ruleIndex, int j_bin, double **a,double *total_a);
+
 #endif

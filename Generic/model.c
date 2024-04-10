@@ -1,6 +1,6 @@
 #include "model.h"
 #include <string.h>
-
+#include <stdio.h>
 
 struct Species* createSpeciesArray() {
     struct Species* species  = (struct Species*)malloc(n_species * sizeof(struct Species));
@@ -67,23 +67,23 @@ void prop3(double **a,long **species_population,int rulenum) {
        } 
 }
 
-void stateChange(int i,int j, long **species_population,long *tot) {
-   switch(i) {
-    case 1:
-        species_population[0][j]++;
+void reactionChange(int i_reaction,int j_bin, long **species_population,long *tot) {
+   switch(i_reaction) {
+    case 0:// A -> X
+        species_population[0][j_bin]++;
         tot[0]++; 
         break;
-    case 2:
-        species_population[0][j]--;
+    case 1:// X -> C
+        species_population[0][j_bin]--;
         tot[0]--; 
         break;
-    case 3:
-        species_population[1][j]++;
+    case 2://B -> Y
+        species_population[1][j_bin]++;
         tot[1]++; 
         break;
-    case 4:
-        species_population[0][j]++;
-        species_population[1][j]--;
+    case 3://2X + Y -> 3X
+        species_population[0][j_bin]++;
+        species_population[1][j_bin]--;
         tot[0]++; 
         tot[1]--; 
         break;
@@ -91,4 +91,10 @@ void stateChange(int i,int j, long **species_population,long *tot) {
         exit(1);
         break;
     }
+}
+
+void diffusionChange(int ruleIndex, int j_bin, double **a,double *total_a){
+    // total_a[ruleIndex ] =2;
+    // a[ruleIndex][j_bin] = 2;
+
 }

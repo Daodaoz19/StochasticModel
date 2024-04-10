@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
     const int RULENUM = n_species + m_reaction;
     double a0,total_a[RULENUM];
     double r1, r2, tau;
-    int ita;
+    int ruleIndex ;
     double r2a0, sum_a, sum_x;
 
 
@@ -83,59 +83,47 @@ int main(int argc, char *argv[])
         while (timeTracker < SimulationTime)
         {
            
+            
             for(int n =0; n<n_species;n++){
                 total_a[n] = jumpRate[n] * (double)(tot[n]);  
-                double propensityPerBin = total_a[n]/w_bin; 
-                    for(int i = 0; i < w_bin; i++) {
-                        a[n][i] = propensityPerBin;
-                    }
             }
              for (int run = 0; run < m_reaction; run++)
             {
                 double rate = reactions[run].rateConstant;
                 int type =reactions[run].type;
-                 
-                if (type == 0 || type == 1) {
-                  for (int i = 0; i < w_bin; i++) {
-                    if (type == 0) {
-                        total_a[n_species + run] = rate * L; 
-                        double propensityPerBin = total_a[n_species + run]/w_bin; 
-                        a[n_species+run][i] = propensityPerBin;
-                    } else if (type == 1) {
-                        int reactantIndex = reactions[run].reactant[0];
-                        total_a[n_species + run] = rate*tot[reactantIndex]; 
-                        double propensityPerBin = total_a[n_species + run]/w_bin; 
-                        a[n_species+run][i] = propensityPerBin;
-                    }
-                   }
-                } else if (type == 2) {
-                     //total_a[n_species +run] = 0; 
+                if (type == 0)
+                {
+                   total_a[n_species + run] = rate * L; 
+
+                } 
+                else if (type == 1)
+                {
+                    int reactantIndex = reactions[run].reactant[0];
+                    total_a[n_species + run] = rate*tot[reactantIndex]; 
+                }
+                else if (type == 2)
+                {    
+                     total_a[n_species +run] = 0; 
                      reactions[run].calculatePropensity(a, population, run);
                      for(int i=0;i<w_bin;i++){
+                      
                        total_a[n_species +run]+=a[run][i];
-                        double propensityPerBin = total_a[n_species + run]/w_bin; 
-                        a[n_species+run][i] = propensityPerBin;
                      }
-                     
-                }     
+                      //printf("a[run][i] is %f\n",a[3][0]) ;
+                }
+                 
                 
             }
             
-
-            // printf("total_a is %f\n",total_a[0]);
-            // printf("total_a is %f\n",total_a[1]);
-            // printf("total_a is %f\n",total_a[2]);
-            // printf("total_a is %f\n",total_a[3]);
-            // printf("total_a is %f\n",total_a[4]);
-            // printf("total_a is %f\n",total_a[5]);
-            // printf("\n");
-            // printf("a[0][bin] is %f\n",a[0][10]);
-            // printf("a[1][bin] is %f\n",a[1][10]);
-            // printf("a[2][bin] is %f\n",a[2][10]);
-            // printf("a[3][bin] is %f\n",a[3][10]);
-            // printf("a[4][bin] is %f\n",a[4][10]);
-            // printf("a[5][bin] is %f\n",a[5][10]);
-      
+        //   printf("****************\n");
+        //    printf("total_a[5] %f\n",total_a[0]);
+        //    printf("total_a[5] %f\n",total_a[1]);
+        //    printf("total_a[5] %f\n",total_a[2]);
+        //    printf("total_a[5] %f\n",total_a[3]);
+        //    printf("total_a[5] %f\n",total_a[4]);
+        // printf("total_a[5] %f\n",total_a[5]);
+        //    printf("a[3][10] %f\n",a[3][11]);
+        //    printf("a[3][10] %f\n",a[3][31]);
             a0=0;
             for(int i =0;i<RULENUM;i++){
                 a0 += total_a[i];  
@@ -150,16 +138,16 @@ int main(int argc, char *argv[])
             /*
             select which reaction will happen
             */
-            ita = 0;//index of reaction
+            ruleIndex = 0;//index of reaction
               while (sum_a < r2a0)
             {
-                ita++;
-                sum_a += total_a[ita];
+                ruleIndex ++;
+                sum_a += total_a[ruleIndex];
             }
-            sum_a -= total_a[ita]; 
-            printf("At time %f, reaction %d fire\n",timeTracker,ita);
+            sum_a -= total_a[ruleIndex]; 
+            printf("At time %f, reaction %d fire\n",timeTracker,ruleIndex );
             double residue = r2a0 - sum_a;
-            firings[ita]++;
+            firings[ruleIndex]++;
           
             int target=0;//index of bin
 
@@ -167,65 +155,68 @@ int main(int argc, char *argv[])
             ----------------------------
                                         |
                                         |
-                                       \ / r2a0 =90010, ita =1
+                                       \ / r2a0 =90010, ruleIndex=1
                     
             reaction           |__X__|_____Y______|___1__|__2__|__3__|__4__|
             index              0     1      2      3     4     5     6
             propensity         0    200         90000   100   200   300   400
     
             */
-            if (ita < n_species) 
+            if (ruleIndex < n_species) 
             {   
-                long species_sum = population[ita][0]; 
-                residue = residue/jumpRate[ita];
+                long species_sum = population[ruleIndex][0]; 
+                residue = residue/jumpRate[ruleIndex];
                 while(species_sum<residue){  
                     target++;
-                    species_sum +=population[ita][target];  
+                    species_sum +=population[ruleIndex][target];  
                     residue = residue-species_sum;
-                }   
-                if(0.5*population[ita][target] > residue){
-                    population[ita][target]--;
-                    population[ita][target + 1]++;
-                    //printf("jump to right\n");
+                }  
+                
+                if(0.5*population[ruleIndex][target] > residue){//jump to right
+                    if (target < w_bin-1){
+                        population[ruleIndex][target]--;
+                        population[ruleIndex][target + 1]++;
+                        diffusionChange(ruleIndex,target,a,total_a);
+                    }
+                }else{//jump to left
+                    if (target>0){ 
+                    population[ruleIndex][target]--;
+                    population[ruleIndex][target - 1]++; 
+                    diffusionChange(ruleIndex,target,a,total_a); 
+                    }
                 }
-                else{
-                    population[ita][target]--;
-                    population[ita][target - 1]++;
-                    //printf("jump to left\n");
-                }
-                //break;
-                //propensityChange(ita,target,a[ita][target]);
+            
+             
             }
             else{ 
-               int reactionType = ita -n_species;
-               if (reactions[reactionType].type == 0) {
-                    int target = floor(((residue)/total_a[ita])*w_bin);
+               int reactionIndex = ruleIndex-n_species;
+               if (reactions[reactionIndex].type == 0) {
+                    int target = floor(((residue)/total_a[ruleIndex])*w_bin);
                     location[target]++;
-                }else if (reactions[reactionType].type == 1) {
-                    /*
-                    for reaction type 1, we want to find the target bin contain the maximum value of species
-                    population.
-                    */
-                    int type =reactions[ita].type; //type of species that reacts
-                    int boundary_bin = floor(((residue)/total_a[ita])*w_bin);
-                    long species_sum = population[type][0]; 
-                    //search for largest population bin within the boundary
-                    for(int i=0;i<boundary_bin;i++){
-                    if(species_sum < population[type][i])
-                    {
-                        species_sum = population[type][i]; 
-                        target = i; }
-                    }
+                }else if (reactions[reactionIndex].type == 1) {
+                   
+                    long species_sum = population[ruleIndex][0]; 
+                    residue = residue/total_a[ruleIndex];
+                    while(species_sum<residue){  
+                        target++;
+                        species_sum +=population[ruleIndex][target];  
+                        residue = residue-species_sum;
+                    }   
                     location[target]++;
-                }else if (reactions[reactionType].type == 2) {
-                    /*
-                    for reaction type 2, we want to find the target bin contain the maximum value of species
-                    population. We propobally need modeler to input the index of species involve in this reaction
-                    */
+                    break;
+                }else if (reactions[reactionIndex].type == 2) {
+                    double propensity_sum = a[reactionIndex][0];
+                    residue = residue/total_a[ruleIndex];
+                    while(propensity_sum<residue){  
+                        target++;
+                        propensity_sum +=a[reactionIndex][target];  
+                        residue = residue-propensity_sum;
+                    }   
                     location[target]++;
+                    break;
                 }
-                //after finding the bin, apply statechange to the reaction base on modeler provied function
-                stateChange(ita, target, population, tot);
+               
+                reactionChange(ruleIndex, target, population, tot);
             }
 
 
