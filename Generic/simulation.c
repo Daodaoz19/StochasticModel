@@ -175,15 +175,15 @@ int main(int argc, char *argv[])
                 if(0.5*population[ruleIndex][target] > residue){//jump to right
                     if (target < w_bin-1){
                         population[ruleIndex][target]--;
-                        population[ruleIndex][target + 1]++;
-                        diffusionChange(ruleIndex,target,a,total_a);
+                        population[ruleIndex][target + 1]++;  
                     }
+                    diffusionChange(ruleIndex,target,a,total_a);
                 }else{//jump to left
                     if (target>0){ 
                     population[ruleIndex][target]--;
-                    population[ruleIndex][target - 1]++; 
-                    diffusionChange(ruleIndex,target,a,total_a); 
+                    population[ruleIndex][target - 1]++;  
                     }
+                    diffusionChange(ruleIndex,target,a,total_a);
                 }
             
              
