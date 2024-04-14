@@ -18,7 +18,7 @@ struct Reaction* createReactionArray() {
     for (size_t i = 0; i < m_reaction; ++i) {
         reaction[i].type = 1; // Default type
         reaction[i].rateConstant = 0; // Default type
-        reaction[i].reactant = NULL;// Default type
+        reaction[i].reactant = 0;// Default type
         reaction[i].calculatePropensity =NULL;// Default type
     }
     return reaction;
@@ -44,8 +44,7 @@ void initializeSimulation(struct Species** species, struct Reaction** reactions)
     // X -> C
     (*reactions)[1].type = 1;
     (*reactions)[1].rateConstant = 2.0;
-    (*reactions)[1].reactant = (int*)malloc((*reactions)[1].type * sizeof(int));
-    (*reactions)[1].reactant[0]= 0;
+    (*reactions)[1].reactant= 0;
 
     //B -> Y
     (*reactions)[2].type = 0;
@@ -63,8 +62,9 @@ void prop3(double **a,long **species_population,int rulenum) {
     for (int i = 0; i < w_bin; i++) {
         long x = species_population[0][i]; 
         long y = species_population[1][i];
-        a[rulenum][i] = x * (x - 1) * y; 
+        a[rulenum][i] = x * (x - 1) * y  ; 
        } 
+
 }
 
 void reactionChange(int i_reaction,int j_bin, long **species_population,long *tot) {
@@ -88,7 +88,6 @@ void reactionChange(int i_reaction,int j_bin, long **species_population,long *to
         tot[1]--; 
         break;
     default:
-        exit(1);
         break;
     }
 }
