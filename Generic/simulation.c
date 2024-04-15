@@ -53,18 +53,19 @@ int main(int argc, char *argv[])
     
     //Set up initial population
     long **population = initializePopulation(species);
-    //Calculate total population for each species
-    for (i = 0; i < n_species; i++)
-    {
-        for (j = 0; j < w_bin; j++)
-        {
-            total_population[i] += population[i][j];
-        }
-    }
+    
     srand(time(NULL));
     for (int real = 0; real < NUMofRUNS; real++)
     {
        
+        //Calculate total population for each species
+        for (i = 0; i < n_species; i++)
+        {
+            for (j = 0; j < w_bin; j++)
+            {
+                total_population[i] += population[i][j];
+            }
+        }
         //Allocate memory for the propensity array a[RULENUM][W_BIN]
         double **a;
         a = (double **)malloc(RULENUM * sizeof(double *));
