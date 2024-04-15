@@ -62,38 +62,79 @@ void prop3(double **a,long **species_population,int rulenum) {
     for (int i = 0; i < w_bin; i++) {
         long x = species_population[0][i]; 
         long y = species_population[1][i];
-        a[rulenum][i] = x * (x - 1) * y  ; 
+        a[rulenum][i] = x * (x - 1) * y * 1.0/(w_bin*w_bin)* w_bin*w_bin; 
        } 
 
 }
 
-void reactionChange(int i_reaction,int j_bin, long **species_population,long *total_population) {
+void reactionChange(int i_reaction,int j_bin, long **species_population,long *total_population, double **a, double *total_a) {
    switch(i_reaction) {
     case 0:// A -> X
         species_population[0][j_bin]++;
         total_population[0]++; 
+
+        total_a[i_reaction] =1.0*10.0;//RateConstant * L
+        a[i_reaction][j_bin] =1.0*10.0;
+
+        //A -> X fire, we need to update the propensity for reaction that involve X as a reactant:
+        //X -> C 
+        total_a[i_reaction+1] =2.0*total_population[0];//RateConstant * reactant.population
+        a[i_reaction+1][j_bin] =2.0*total_population[0];
+        //2X + Y -> 3X
+        total_a[i_reaction+3] =200;//hardcoded dummy value
+        a[i_reaction+3][j_bin] =200;
         break;
     case 1:// X -> C
         species_population[0][j_bin]--;
         total_population[0]--; 
+        
+        total_a[i_reaction] =2.0*total_population[0];//RateConstant * reactant.population
+        a[i_reaction][j_bin] =2.0*total_population[0];
+        
+        //X -> C fire, we need to update the propensity for reaction that involve X as a reactant:
+        //2X + Y -> 3X
+        total_a[i_reaction+2] =200;//hardcoded dummy value
+        a[i_reaction+2][j_bin] =200;
         break;
     case 2://B -> Y
         species_population[1][j_bin]++;
         total_population[1]++; 
+ 
+        total_a[i_reaction] =3.0*10.0;//RateConstant * L
+        a[i_reaction][j_bin] =3.0*10.0;
+
+        //B -> Y fire, we need to update the propensity for reaction that involve Y as a reactant:
+        //2X + Y -> 3X
+        total_a[i_reaction+1] =200;//hardcoded dummy value
+        a[i_reaction+1][j_bin] =200;
         break;
     case 3://2X + Y -> 3X
         species_population[0][j_bin]++;
         species_population[1][j_bin]--;
         total_population[0]++; 
         total_population[1]--; 
+
+        total_a[i_reaction] =200;//hardcoded dummy value
+        a[i_reaction][j_bin] =200;
+
+        //2X + Y -> 3X fire, we need to update the propensity for reaction that involve X or Y as a reactant:
+        // X -> C
+        total_a[i_reaction-2] =2.0*total_population[0];//RateConstant * reactant.population
+        a[i_reaction-2][j_bin] =2.0*total_population[0];
+
+
         break;
     default:
         break;
     }
 }
 
-void diffusionChange(int ruleIndex, int j_bin, double **a,double *total_a){
-    // total_a[ruleIndex ] =2;
-    // a[ruleIndex][j_bin] = 2;
-
+void diffusionChange(int speciesIndex, int bin, long **population, double **a, double *total_a) {
+    if (speciesIndex==0){//update propensity value for x diffuse
+    total_a[speciesIndex ] =5e-4 * population[0][bin];
+    a[speciesIndex][bin] = 5e-4 * population[0][bin];
+    }else{//update propensity value for y diffuse
+    total_a[speciesIndex ] =5 * population[1][bin];
+    a[speciesIndex][bin] = 5 * population[1][bin];
+    }   
 }

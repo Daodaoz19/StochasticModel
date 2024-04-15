@@ -50,20 +50,21 @@ int main(int argc, char *argv[])
 
     printf("Begin the model simulation ...\n");
     printf("BINNUM = %d\n", w_bin);
-
+    
+    //Set up initial population
+    long **population = initializePopulation(species);
+    //Calculate total population for each species
+    for (i = 0; i < n_species; i++)
+    {
+        for (j = 0; j < w_bin; j++)
+        {
+            total_population[i] += population[i][j];
+        }
+    }
     srand(time(NULL));
     for (int real = 0; real < NUMofRUNS; real++)
     {
-        //Set up initial population
-        long **population = initializePopulation(species);
-        //Calculate total population for each species
-        for (i = 0; i < n_species; i++)
-        {
-            for (j = 0; j < w_bin; j++)
-            {
-                total_population[i] += population[i][j];
-            }
-        }
+       
         //Allocate memory for the propensity array a[RULENUM][W_BIN]
         double **a;
         a = (double **)malloc(RULENUM * sizeof(double *));
@@ -71,7 +72,7 @@ int main(int argc, char *argv[])
         {
             a[i] = (double *)malloc(w_bin * sizeof(double));
         }
-        //Initialize log file
+        //Initialize output file
         for (i = 0; i < RULENUM; i++)
         {
             firings[i] = 0;
@@ -92,34 +93,31 @@ int main(int argc, char *argv[])
             //Calculate propensity for reactions base on reaction_type
             for (int run = 0; run < m_reaction; run++)
             {
-                reaction_rate = reactions[run].rateConstant;
-                reaction_type = reactions[run].type;
-                if (reaction_type == 0)// For reaction type 0, compute propensity values by reaction rate * length
-                {
-                    total_a[n_species + run] = reaction_rate * L;
-                }
-                else if (reaction_type == 1)// For reaction type 1, compute propensity values by reaction rate * total population
-                {
-                    reaction_index = reactions[run].reactant;
-                    total_a[n_species + run] = reaction_rate * total_population[reaction_index];
-                }
-                else// For reaction type 2, compute propensity values using a user-defined function
-                {
-                    total_a[n_species + run] = 0;
-                    reactions[run].calculatePropensity(a, population, run);
-                    for (int i = 0; i < w_bin; i++)
-                    {
-                        total_a[n_species + run] += a[run][i];
-                    }
-                }
+                double reaction_rate = reactions[run].rateConstant;
+                int reaction_type = reactions[run].type;
+                switch (reaction_type) {
+                    case 0: // For reaction type 0, compute propensity values by reaction rate * length
+                        total_a[n_species + run] = reaction_rate * L;
+                        break;
+                    case 1:// For reaction type 1, compute propensity values by reaction rate * total population
+                        int reaction_index = reactions[run].reactant;
+                        total_a[n_species + run] = reaction_rate * total_population[reaction_index];
+                        break;
+                    case 2:// For reaction type 2, compute propensity values using a user-defined function
+                        total_a[n_species + run] = 0;
+                        reactions[run].calculatePropensity(a, population, run);
+                        for (i = 0; i < w_bin; i++) {
+                            total_a[n_species + run] += a[run][i];
+                        }
+                        break;}
             }
-
             //calculate a0
             a0 = 0;
             for (i = 0; i < RULENUM; i++)
             {
                 a0 += total_a[i];
             }
+
             //Calculate the time when the next reaction occurs
             r1 = (double)rand() / RAND_MAX;
             tau = -1.0 / a0 * log(r1);
@@ -148,7 +146,7 @@ int main(int argc, char *argv[])
                 residue = residue / jumpRate[ruleIndex];
                 while (species_sum < residue)
                 {
-                    target_bin++; //find the bin that the reaction occur
+                    target_bin++; // Increment to find the target bin
                     species_sum += population[ruleIndex][target_bin];
                 }
                 residue = species_sum - residue;
@@ -158,7 +156,8 @@ int main(int argc, char *argv[])
                     {
                         population[ruleIndex][target_bin]--;
                         population[ruleIndex][target_bin + 1]++;
-
+                        diffusionChange(ruleIndex,target_bin, population, a,total_a);
+                        diffusionChange(ruleIndex,target_bin+1, population, a, total_a);
                     } 
                     //if it's the last bin on the right, do nothing
                 }
@@ -168,6 +167,8 @@ int main(int argc, char *argv[])
                     {
                         population[ruleIndex][target_bin]--;
                         population[ruleIndex][target_bin - 1]++;
+                        diffusionChange(ruleIndex,target_bin, population, a,total_a);
+                        diffusionChange(ruleIndex,target_bin - 1, population, a, total_a);
                     } 
                     //if it's the first bin on the left, do nothing
                 }
@@ -175,41 +176,39 @@ int main(int argc, char *argv[])
             else //Find the bin index where the reaction occurs
             {
                 reaction_index = ruleIndex - n_species;
-                if (reactions[reaction_index].type == 0)
-                {
-                    target_bin = floor(((residue) / total_a[ruleIndex]) * w_bin); //find the target bin
-                    location[target_bin]++;
+                switch (reactions[reaction_index].type) {
+                    case 0:
+                        // For reaction type 0, find the target bin based on the residue location
+                        target_bin = floor((residue / total_a[ruleIndex]) * w_bin);
+                        location[target_bin]++;
+                        break;
+                    case 1:
+                        // For reaction type 1, calculate target bin based on population distribution
+                        target_bin = 0;
+                        reactant_index = reactions[reaction_index].reactant;
+                        species_sum = population[reactant_index][0];
+                        residue = residue * total_population[reactant_index] / total_a[ruleIndex];
+                        while (species_sum < residue) {
+                            target_bin++; // Increment to find the target bin
+                            species_sum += population[reactant_index][target_bin];
+                        }
+                        location[target_bin]++;
+                        break;
+                    case 2:
+                        // For reaction type 2, calculate based on a propensity function
+                        target_bin = 0;
+                        propensity_sum = a[reaction_index][0];
+                        while (propensity_sum < residue) {
+                            target_bin++; // Increment to find the target bin
+                            propensity_sum += a[reaction_index][target_bin];
+                        }
+                        location[target_bin]++;
+                        break;
                 }
-                else if (reactions[reaction_index].type == 1)
-                {
-                    target_bin = 0;
-                    reactant_index = reactions[reaction_index].reactant;
-                    species_sum = population[reactant_index][0];
-
-                    residue = residue * total_population[reactant_index] / total_a[ruleIndex];
-                    //partial sum of population exceed the population residue
-                    while (species_sum < residue)
-                    {
-                        target_bin++;//find the target bin
-                        species_sum += population[reactant_index][target_bin];
-                    }
-                    location[target_bin]++;
-                }
-                else
-                {
-                    target_bin = 0;
-                    propensity_sum = a[reaction_index][0];
-                    //partial sum of propensity exceeds the propensity residue
-                    while (propensity_sum < residue)
-                    {
-                        target_bin++;//find the target bin
-                        propensity_sum += a[reaction_index][target_bin];
-                    }
-                    location[target_bin]++;
-                }
-                reactionChange(reaction_index, target_bin, population, total_population);
+                reactionChange(reaction_index, target_bin, population, total_population,a,total_a);
             }
         }
+
         // end of simulation, collect the statistics
         for (i = 0; i < n_species; i++)
         {
