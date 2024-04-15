@@ -7,6 +7,8 @@ typedef void (*PropensityFunc)(double **, long **, int);
 #define m_reaction 4 
 #define w_bin 100 
 #define L 10.0
+#define NUMofRUNS 1
+#define SimulationTime 10
 
 struct Species{
     int index;
@@ -18,7 +20,7 @@ struct Species{
 struct Reaction{
     int type; 
     double rateConstant;
-    int* reactant; 
+    int reactant; 
     PropensityFunc calculatePropensity;
 };
 

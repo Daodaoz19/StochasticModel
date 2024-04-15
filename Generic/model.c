@@ -67,25 +67,25 @@ void prop3(double **a,long **species_population,int rulenum) {
 
 }
 
-void reactionChange(int i_reaction,int j_bin, long **species_population,long *tot) {
+void reactionChange(int i_reaction,int j_bin, long **species_population,long *total_population) {
    switch(i_reaction) {
     case 0:// A -> X
         species_population[0][j_bin]++;
-        tot[0]++; 
+        total_population[0]++; 
         break;
     case 1:// X -> C
         species_population[0][j_bin]--;
-        tot[0]--; 
+        total_population[0]--; 
         break;
     case 2://B -> Y
         species_population[1][j_bin]++;
-        tot[1]++; 
+        total_population[1]++; 
         break;
     case 3://2X + Y -> 3X
         species_population[0][j_bin]++;
         species_population[1][j_bin]--;
-        tot[0]++; 
-        tot[1]--; 
+        total_population[0]++; 
+        total_population[1]--; 
         break;
     default:
         break;
