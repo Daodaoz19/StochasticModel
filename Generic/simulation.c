@@ -4,20 +4,44 @@
 #include <time.h>
 #include "model.h"
 
+enum { Auto, Manual };
 extern void initializeSimulation(struct Species **species, struct Reaction **reactions);
 long **initializePopulation(struct Species *species);
+void calculatePropensities(double total_a[], const long total_population[], struct Reaction *reactions, struct Species *species, double **a, long **population, double h, double jumpRate[]);
 int main(int argc, char *argv[])
 {
     struct Species *species = createSpeciesArray(n_species);
     struct Reaction *reactions = createReactionArray(m_reaction);
     initializeSimulation(&species, &reactions);
+    
+    int i, j;
+
+    //Set up initial population
+    long **population;
+    char* inputFilename;
+    if (argc ==1) {// Use default initial values from model.c
+        population = initializePopulation(species);
+        printf("starting simulation with initial population from initialValue\n");
+    } else {//Use inital population from user provied file 
+       FILE *inputfile = fopen(argv[1], "r");
+        population = (long **)malloc(n_species * sizeof(long *));
+        for (i = 0; i < n_species; i++) {
+            population[i] = (long *)malloc(w_bin * sizeof(long));
+            for (j = 0; j < w_bin; j++) {
+                if (fscanf(inputfile, "%ld", &population[i][j]) != 1) {
+                    fclose(inputfile);
+                }
+            }
+        }
+        fclose(inputfile);
+        printf("Starting simulation with initial population from %s\n", argv[1]);
+    }
+
     //Variable for model parameter
     double reaction_rate;
     int reaction_type,reactant_index;
     int RULENUM = n_species + m_reaction;
     
-    int i, j;
-
     // Calculate interval length
     double h = L / w_bin;
 
@@ -48,24 +72,18 @@ int main(int argc, char *argv[])
     FILE *firefile = fopen("firings", "w");
     FILE *locationfile = fopen("location", "w");
 
-    printf("Begin the model simulation ...\n");
-    printf("BINNUM = %d\n", w_bin);
-    
-    //Set up initial population
-    long **population = initializePopulation(species);
-    
+    //Calculate total population for each species
+    for (i = 0; i < n_species; i++)
+    {
+        for (j = 0; j < w_bin; j++)
+        {
+            total_population[i] += population[i][j];
+        }
+    }
     srand(time(NULL));
     for (int real = 0; real < NUMofRUNS; real++)
     {
        
-        //Calculate total population for each species
-        for (i = 0; i < n_species; i++)
-        {
-            for (j = 0; j < w_bin; j++)
-            {
-                total_population[i] += population[i][j];
-            }
-        }
         //Allocate memory for the propensity array a[RULENUM][W_BIN]
         double **a;
         a = (double **)malloc(RULENUM * sizeof(double *));
@@ -85,33 +103,15 @@ int main(int argc, char *argv[])
 
         double timeTracker = 0.0;
         while (timeTracker < SimulationTime)
-        {
-            //Calculate propensity for diffusions
-            for (i = 0; i < n_species; i++) 
-            {
-                total_a[i] = jumpRate[i] * (double)(total_population[i]);
+         {
+            //Calculate propensity value for each reaction 
+            if(Mode == Auto) {
+               calculatePropensities(total_a, total_population, reactions, species, a, population, h, jumpRate); 
             }
-            //Calculate propensity for reactions base on reaction_type
-            for (int run = 0; run < m_reaction; run++)
-            {
-                double reaction_rate = reactions[run].rateConstant;
-                int reaction_type = reactions[run].type;
-                switch (reaction_type) {
-                    case 0: // For reaction type 0, compute propensity values by reaction rate * length
-                        total_a[n_species + run] = reaction_rate * L;
-                        break;
-                    case 1:// For reaction type 1, compute propensity values by reaction rate * total population
-                        int reaction_index = reactions[run].reactant;
-                        total_a[n_species + run] = reaction_rate * total_population[reaction_index];
-                        break;
-                    case 2:// For reaction type 2, compute propensity values using a user-defined function
-                        total_a[n_species + run] = 0;
-                        reactions[run].calculatePropensity(a, population, run);
-                        for (i = 0; i < w_bin; i++) {
-                            total_a[n_species + run] += a[run][i];
-                        }
-                        break;}
+            else if(Mode == Manual){
+              //call user function
             }
+                
             //calculate a0
             a0 = 0;
             for (i = 0; i < RULENUM; i++)
@@ -262,4 +262,37 @@ long **initializePopulation(struct Species *species)
         }
     }
     return population;
+}
+
+void calculatePropensities(double total_a[], const long total_population[], struct Reaction *reactions, struct Species *species, double **a, long **population,double h, double jumpRate[]) {
+    int i, run;
+
+    // Calculate propensity for diffusions based on jump rates calculated
+    for (i = 0; i < n_species; i++) {
+        total_a[i] = jumpRate[i] * (double)(total_population[i]);
+    }
+
+    // Calculate propensity for reactions based on reaction type
+    for (run = 0; run < m_reaction; run++) {
+        double reaction_rate = reactions[run].rateConstant;
+        int reaction_type = reactions[run].type;
+        switch (reaction_type) {
+            case 0: // For reaction type 0, compute propensity values by reaction rate * length
+                total_a[n_species + run] = reaction_rate * L;
+                break;
+            case 1: // For reaction type 1, compute propensity values by reaction rate * total population of the reactant
+                int reactant_index = reactions[run].reactant;
+                total_a[n_species + run] = reaction_rate * total_population[reactant_index];
+                break;
+            case 2: // For reaction type 2, compute propensity values using a user-defined function
+                total_a[n_species + run] = 0;
+                if (reactions[run].calculatePropensity != NULL) {
+                    reactions[run].calculatePropensity(a, population, run);
+                    for (i = 0; i < w_bin; i++) {
+                        total_a[n_species + run] += a[run][i];
+                    }
+                }
+                break;
+        }
+    }
 }

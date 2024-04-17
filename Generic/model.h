@@ -9,6 +9,7 @@ typedef void (*PropensityFunc)(double **, long **, int);
 #define L 10.0
 #define NUMofRUNS 1
 #define SimulationTime 10
+#define Mode Auto //Choose from Auto or Manual 
 
 struct Species{
     int index;
