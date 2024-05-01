@@ -4,10 +4,10 @@
 #include <time.h>
 #include "model.h"
 
-enum { Auto, Manual };
+enum Mode{ Auto, Manual };
 extern void initializeSimulation(struct Species **species, struct Reaction **reactions);
 long **initializePopulation(struct Species *species);
-void calculatePropensities(double total_a[], const long total_population[], struct Reaction *reactions, struct Species *species, double **a, long **population, double h, double jumpRate[]);
+void calculatePropensities(double total_a[], long total_population[], struct Reaction *reactions, struct Species *species, double **a, long **population, double jumpRate[]);
 int main(int argc, char *argv[])
 {
     struct Species *species = createSpeciesArray(n_species);
@@ -79,18 +79,22 @@ int main(int argc, char *argv[])
         {
             total_population[i] += population[i][j];
         }
+    } 
+
+    //Allocate memory for the propensity array a[RULENUM][W_BIN]
+    double **a;
+    a = (double **)malloc(RULENUM * sizeof(double *));
+    for (i = 0; i < RULENUM; i++)
+    {
+         a[i] = (double *)malloc(w_bin * sizeof(double));
     }
+
+    calculatePropensities(total_a, total_population, reactions, species, a, population, jumpRate); 
+    
     srand(time(NULL));
     for (int real = 0; real < NUMofRUNS; real++)
     {
        
-        //Allocate memory for the propensity array a[RULENUM][W_BIN]
-        double **a;
-        a = (double **)malloc(RULENUM * sizeof(double *));
-        for (i = 0; i < RULENUM; i++)
-        {
-            a[i] = (double *)malloc(w_bin * sizeof(double));
-        }
         //Initialize output file
         for (i = 0; i < RULENUM; i++)
         {
@@ -106,24 +110,19 @@ int main(int argc, char *argv[])
          {
             //Calculate propensity value for each reaction 
             if(Mode == Auto) {
-               calculatePropensities(total_a, total_population, reactions, species, a, population, h, jumpRate); 
+               calculatePropensities(total_a, total_population, reactions, species, a, population, jumpRate); 
             }
-            else if(Mode == Manual){
-              //call user function
-            }
-                
             //calculate a0
             a0 = 0;
             for (i = 0; i < RULENUM; i++)
             {
                 a0 += total_a[i];
             }
-
             //Calculate the time when the next reaction occurs
             r1 = (double)rand() / RAND_MAX;
             tau = -1.0 / a0 * log(r1);
             timeTracker += tau;
-
+            
             //Find the index of the next reaction occurs
             r2 = (double)rand() / RAND_MAX;
             r2a0 = r2 * a0;
@@ -157,8 +156,10 @@ int main(int argc, char *argv[])
                     {
                         population[ruleIndex][target_bin]--;
                         population[ruleIndex][target_bin + 1]++;
+                        if(Mode == Manual){
                         diffusionChange(ruleIndex,target_bin, population, a,total_a);
-                        diffusionChange(ruleIndex,target_bin+1, population, a, total_a);
+                        }
+                       
                     } 
                     //if it's the last bin on the right, do nothing
                 }
@@ -166,13 +167,16 @@ int main(int argc, char *argv[])
                 { 
                     if (target_bin > 0)
                     {
+            
                         population[ruleIndex][target_bin]--;
                         population[ruleIndex][target_bin - 1]++;
+                         if(Mode == Manual){
                         diffusionChange(ruleIndex,target_bin, population, a,total_a);
-                        diffusionChange(ruleIndex,target_bin - 1, population, a, total_a);
+                         }
                     } 
                     //if it's the first bin on the left, do nothing
                 }
+                
             }
             else //Find the bin index where the reaction occurs
             {
@@ -206,7 +210,10 @@ int main(int argc, char *argv[])
                         location[target_bin]++;
                         break;
                 }
-                reactionChange(reaction_index, target_bin, population, total_population,a,total_a);
+                reactionChange(reaction_index, target_bin, population, total_population);
+                if(Mode == Manual){
+                reaction_propensityChange(reaction_index, target_bin,population,total_population, a,total_a);   
+                }
             }
         }
 
@@ -264,10 +271,10 @@ long **initializePopulation(struct Species *species)
     return population;
 }
 
-void calculatePropensities(double total_a[], const long total_population[], struct Reaction *reactions, struct Species *species, double **a, long **population,double h, double jumpRate[]) {
+void calculatePropensities(double total_a[], long total_population[], struct Reaction *reactions, struct Species *species, double **a, long **population, double jumpRate[]) {
     int i, run;
 
-    // Calculate propensity for diffusions based on jump rates calculated
+   //Calculate propensity for diffusions based on jump rates calculated
     for (i = 0; i < n_species; i++) {
         total_a[i] = jumpRate[i] * (double)(total_population[i]);
     }
@@ -288,6 +295,7 @@ void calculatePropensities(double total_a[], const long total_population[], stru
                 total_a[n_species + run] = 0;
                 if (reactions[run].calculatePropensity != NULL) {
                     reactions[run].calculatePropensity(a, population, run);
+
                     for (i = 0; i < w_bin; i++) {
                         total_a[n_species + run] += a[run][i];
                     }
@@ -296,3 +304,4 @@ void calculatePropensities(double total_a[], const long total_population[], stru
         }
     }
 }
+
