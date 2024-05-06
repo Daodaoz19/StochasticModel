@@ -30,7 +30,6 @@ struct Species* createSpeciesArray();
 struct Reaction* createReactionArray();
 void prop3(double **a,long **species_population,int rulenum);
 void reactionChange(int i_reaction,int j_bin, long **species_population,long *total_population);
-void reaction_propensityChange(int i_reaction,int j_bin,long **species_population,long *total_population,  double **a, double *total_a);
-void diffusionChange(int ruleIndex, int target_bin, long **population, double **a, double *total_a);
-
+void reaction_propensityChange(int i_reaction,int j_bin,long **species_population, long total_population[], double **a, double total_a[], double jumpRate[]);
+void diffusionChange(int speciesIndex, int bin, long **population, double **a, double *total_a,long *total_population,double jumpRate[]);
 #endif

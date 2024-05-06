@@ -90,11 +90,12 @@ int main(int argc, char *argv[])
     }
 
     calculatePropensities(total_a, total_population, reactions, species, a, population, jumpRate); 
-    
-    srand(time(NULL));
+ 
+    //srand(time(NULL));
+    srand(2001);
     for (int real = 0; real < NUMofRUNS; real++)
     {
-       
+        
         //Initialize output file
         for (i = 0; i < RULENUM; i++)
         {
@@ -107,11 +108,7 @@ int main(int argc, char *argv[])
 
         double timeTracker = 0.0;
         while (timeTracker < SimulationTime)
-         {
-            //Calculate propensity value for each reaction 
-            if(Mode == Auto) {
-               calculatePropensities(total_a, total_population, reactions, species, a, population, jumpRate); 
-            }
+          {
             //calculate a0
             a0 = 0;
             for (i = 0; i < RULENUM; i++)
@@ -137,7 +134,6 @@ int main(int argc, char *argv[])
             sum_a -= total_a[ruleIndex];
             residue = r2a0 - sum_a;
             firings[ruleIndex]++;
-
             //Find the bin index where the jump occurs
             if (ruleIndex < n_species)
             {
@@ -157,7 +153,9 @@ int main(int argc, char *argv[])
                         population[ruleIndex][target_bin]--;
                         population[ruleIndex][target_bin + 1]++;
                         if(Mode == Manual){
-                        diffusionChange(ruleIndex,target_bin, population, a,total_a);
+                            
+                       diffusionChange(ruleIndex,target_bin, population, a,total_a, total_population, jumpRate);
+                       diffusionChange(ruleIndex,target_bin+1, population, a,total_a, total_population, jumpRate);
                         }
                        
                     } 
@@ -171,7 +169,8 @@ int main(int argc, char *argv[])
                         population[ruleIndex][target_bin]--;
                         population[ruleIndex][target_bin - 1]++;
                          if(Mode == Manual){
-                        diffusionChange(ruleIndex,target_bin, population, a,total_a);
+                       diffusionChange(ruleIndex,target_bin, population, a,total_a, total_population, jumpRate);
+                       diffusionChange(ruleIndex,target_bin-1, population, a,total_a, total_population, jumpRate);
                          }
                     } 
                     //if it's the first bin on the left, do nothing
@@ -186,6 +185,8 @@ int main(int argc, char *argv[])
                         // For reaction type 0, find the target bin based on the residue location
                         target_bin = floor((residue / total_a[ruleIndex]) * w_bin);
                         location[target_bin]++;
+
+                        //printf("total a3 is %f\n",total_a[3]);
                         break;
                     case 1:
                         // For reaction type 1, calculate target bin based on population distribution
@@ -210,11 +211,17 @@ int main(int argc, char *argv[])
                         location[target_bin]++;
                         break;
                 }
-                reactionChange(reaction_index, target_bin, population, total_population);
-                if(Mode == Manual){
-                reaction_propensityChange(reaction_index, target_bin,population,total_population, a,total_a);   
+                reactionChange( reaction_index, target_bin, population, total_population);
                 }
+                //
+
+             //Calculate propensity value for each reaction 
+            if(Mode == Auto) {
+               calculatePropensities(total_a, total_population, reactions, species, a, population, jumpRate); 
             }
+            else{ //Manual
+                reaction_propensityChange( reaction_index, target_bin,population,total_population, a,total_a,jumpRate);   
+            }    
         }
 
         // end of simulation, collect the statistics
@@ -244,7 +251,7 @@ int main(int argc, char *argv[])
             fprintf(locationfile, "%ld\t", location[i]);
         }
         fprintf(locationfile, "\n");
-
+ 
     }
 
     free(species);
@@ -274,8 +281,8 @@ long **initializePopulation(struct Species *species)
 void calculatePropensities(double total_a[], long total_population[], struct Reaction *reactions, struct Species *species, double **a, long **population, double jumpRate[]) {
     int i, run;
 
-   //Calculate propensity for diffusions based on jump rates calculated
-    for (i = 0; i < n_species; i++) {
+//    //Calculate propensity for diffusions based on jump rates calculated
+    for(i = 0; i < n_species; i++) {
         total_a[i] = jumpRate[i] * (double)(total_population[i]);
     }
 
