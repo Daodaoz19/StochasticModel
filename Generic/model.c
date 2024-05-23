@@ -54,7 +54,7 @@ void initializeSimulation(struct Species **species, struct Reaction **reactions)
 {
     *species = createSpeciesArray(n_species);
     *reactions = createReactionArray(m_reaction);
-
+     
     // parameter of species X
     strcpy((*species)[0].name, "X");
     (*species)[0].initialValue = 1;
@@ -103,22 +103,22 @@ void reactionChange(int i_reaction, int j_bin, long **species_population, long *
     switch (i_reaction)
     {
     case 0: // A -> X
-        species_population[0][j_bin]++;
-        total_population[0]++;
+        species_population[0][j_bin]++; //Population of X in j_bin increase 
+        total_population[0]++; //Total population of X increase
         break;
     case 1: // X -> C
-        species_population[0][j_bin]--;
-        total_population[0]--;
+        species_population[0][j_bin]--;//Population of X in j_bin decrease 
+        total_population[0]--;//Total population of X decrease 
         break;
     case 2: // B -> Y
-        species_population[1][j_bin]++;
-        total_population[1]++;
+        species_population[1][j_bin]++;//Population of Y in j_bin increase 
+        total_population[1]++;//Total population of Y increase
         break;
     case 3: // 2X + Y -> 3X
-        species_population[0][j_bin]++;
-        species_population[1][j_bin]--;
-        total_population[0]++;
-        total_population[1]--;
+        species_population[0][j_bin]++;//Population of X in j_bin increase 
+        species_population[1][j_bin]--;//Population of Y in j_bin decrease 
+        total_population[0]++;//Total population of X increase
+        total_population[1]--;//Total population of Y decrease
         break;
     default:
         break;

@@ -18,7 +18,6 @@ int main(int argc, char *argv[])
 
     //Set up initial population
     long **population;
-    char* inputFilename;
     if (argc ==1) {// Use default initial values from model.c
         population = initializePopulation(species);
         printf("starting simulation with initial population from initialValue\n");
@@ -38,8 +37,7 @@ int main(int argc, char *argv[])
     }
 
     //Variable for model parameter
-    double reaction_rate;
-    int reaction_type,reactant_index;
+    int reactant_index;
     int RULENUM = n_species + m_reaction;
     
     // Calculate interval length
@@ -297,7 +295,8 @@ long **initializePopulation(struct Species *species)
 
 void calculatePropensities(double total_a[], long total_population[], struct Reaction *reactions, struct Species *species, double **a, long **population, double jumpRate[]) {
     int i, run;
-
+    double reaction_rate;
+    int reaction_type;
 //Calculate propensity for diffusions based on jump rates calculated
     for(i = 0; i < n_species; i++) {
         total_a[i] = jumpRate[i] * (double)(total_population[i]);
@@ -305,8 +304,8 @@ void calculatePropensities(double total_a[], long total_population[], struct Rea
 
     // Calculate propensity for reactions based on reaction type
     for (run = 0; run < m_reaction; run++) {
-        double reaction_rate = reactions[run].rateConstant;
-        int reaction_type = reactions[run].type;
+        reaction_rate = reactions[run].rateConstant;
+        reaction_type = reactions[run].type;
         switch (reaction_type) {
             case 0: // For reaction type 0, compute propensity values by reaction rate * length
                 total_a[n_species + run] = reaction_rate * L;
